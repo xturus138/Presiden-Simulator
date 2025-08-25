@@ -1,0 +1,40 @@
+
+import React from 'react';
+
+interface GameOverScreenProps {
+  reason: string;
+  legacy: string;
+  onRestart: () => void;
+  isLoadingLegacy: boolean;
+}
+
+const GameOverScreen: React.FC<GameOverScreenProps> = ({ reason, legacy, onRestart, isLoadingLegacy }) => {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+      <div className="bg-red-900 bg-opacity-50 border-2 border-red-500 rounded-lg shadow-2xl max-w-2xl w-full p-8 text-center text-white animate-fade-in-up">
+        <h2 className="text-5xl font-bold text-red-400 font-serif mb-4">
+          Game Over
+        </h2>
+        <p className="text-xl text-red-200 mb-6">{reason}</p>
+        
+        <div className="text-left bg-gray-800 bg-opacity-40 p-4 rounded-md min-h-[100px]">
+            <h3 className="text-lg font-semibold mb-2 text-gray-300 font-serif">Your Historical Legacy:</h3>
+            {isLoadingLegacy ? (
+                <p className="text-gray-400 italic animate-pulse">The historians are writing your chapter...</p>
+            ) : (
+                <p className="text-gray-200 italic">"{legacy}"</p>
+            )}
+        </div>
+        
+        <button
+          onClick={onRestart}
+          className="mt-8 bg-white text-red-800 font-bold py-3 px-8 rounded-lg hover:bg-gray-200 transition duration-300 text-lg"
+        >
+          Try Again
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default GameOverScreen;

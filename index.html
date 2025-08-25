@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -16,6 +15,48 @@
       }
       h1, h2, h3, h4, .font-serif {
         font-family: 'Merriweather', serif;
+      }
+      .shadow-glow {
+        box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);
+      }
+      @keyframes fade-out {
+        from { opacity: 1; transform: translateY(0); }
+        to { opacity: 0; transform: translateY(-10px); }
+      }
+      .animate-fade-out {
+        animation: fade-out 1.5s ease-out forwards;
+      }
+      @keyframes pulse-quick {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+      }
+      .animate-pulse-quick {
+        animation: pulse-quick 0.7s ease-in-out;
+      }
+      
+      @keyframes wave {
+        0% { transform: rotate(0deg); }
+        10% { transform: rotate(-1deg); }
+        20% { transform: rotate(1deg); }
+        30% { transform: rotate(-2deg); }
+        40% { transform: rotate(2deg); }
+        50% { transform: rotate(-2deg); }
+        60% { transform: rotate(1deg); }
+        70% { transform: rotate(-1deg); }
+        80% { transform: rotate(0deg); }
+        100% { transform: rotate(0deg); }
+      }
+      .waving-flag {
+        position: absolute;
+        top: 2rem;
+        right: 2rem;
+        width: 120px;
+        height: 80px;
+        background-image: linear-gradient(to bottom, #EF3340 50%, #FFFFFF 50%);
+        border: 1px solid #ddd;
+        transform-origin: 0% 0%;
+        animation: wave 5s infinite linear;
+        opacity: 0.8;
       }
     </style>
   <script type="importmap">

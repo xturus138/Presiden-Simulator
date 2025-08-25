@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 
 interface InputAreaProps {
@@ -39,7 +38,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSubmit, isLoading, error, isCri
         <button
           type="submit"
           disabled={isLoading || !policy.trim()}
-          className="w-full mt-2 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition duration-300 disabled:bg-red-800 disabled:cursor-not-allowed flex items-center justify-center"
+          className="w-full mt-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 disabled:bg-red-800 disabled:cursor-not-allowed flex items-center justify-center text-lg hover:shadow-lg hover:shadow-red-500/50 transform hover:-translate-y-0.5"
         >
           {isLoading ? (
             <>

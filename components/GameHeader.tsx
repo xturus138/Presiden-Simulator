@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface GameHeaderProps {
@@ -8,7 +7,7 @@ interface GameHeaderProps {
 const GameHeader: React.FC<GameHeaderProps> = ({ year }) => {
   const term = year < 2029 ? 1 : 2;
   return (
-    <header className="text-center bg-black bg-opacity-30 p-4 rounded-lg shadow-lg">
+    <header className="text-center bg-black bg-opacity-30 p-4 rounded-lg shadow-lg backdrop-blur-sm border border-gray-700">
       <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold font-serif text-red-500 tracking-wider">
         President Simulator Indonesia
       </h1>

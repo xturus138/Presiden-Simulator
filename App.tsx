@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GameState, GameStatus, Stat, LogEntry, CrisisEvent } from './types';
 import { INITIAL_GAME_STATE, STAT_DEFINITIONS, CRISIS_EVENTS, WIN_YEAR, MAX_YEAR } from './constants';
@@ -12,10 +11,10 @@ import WinScreen from './components/WinScreen';
 import GameHeader from './components/GameHeader';
 
 const Backgrounds: Record<GameStatus, string> = {
-  playing: 'https://picsum.photos/seed/office/1920/1080',
-  crisis: 'https://picsum.photos/seed/protest/1920/1080',
-  gameover: 'https://picsum.photos/seed/darkparliament/1920/1080',
-  win: 'https://picsum.photos/seed/celebration/1920/1080',
+  playing: 'https://images.unsplash.com/photo-1588294312198-935d21b9f71c?q=80&w=1920&h=1080&fit=crop&auto=format',
+  crisis: 'https://images.unsplash.com/photo-1599599810624-94e43e1d13f9?q=80&w=1920&h=1080&fit=crop&auto=format',
+  gameover: 'https://images.unsplash.com/photo-1618193237586-9a08a4c1472e?q=80&w=1920&h=1080&fit=crop&auto=format',
+  win: 'https://images.unsplash.com/photo-1533587883251-5a63ab539258?q=80&w=1920&h=1080&fit=crop&auto=format',
 };
 
 export default function App() {
@@ -29,39 +28,65 @@ export default function App() {
     crisis: useRef<HTMLAudioElement>(null),
     win: useRef<HTMLAudioElement>(null),
     lose: useRef<HTMLAudioElement>(null),
+    stamp: useRef<HTMLAudioElement>(null),
+    statUp: useRef<HTMLAudioElement>(null),
+    statDown: useRef<HTMLAudioElement>(null),
+    crisisAlert: useRef<HTMLAudioElement>(null),
   };
 
   const stopAllAudio = useCallback(() => {
     Object.values(audioRefs).forEach(ref => {
-      if (ref.current) {
+      if (ref.current && ref.current.duration > 5) { // Only stop long-playing music
         ref.current.pause();
         ref.current.currentTime = 0;
       }
     });
   }, [audioRefs]);
-
+  
+  const prevStatus = useRef(gameState.status);
   useEffect(() => {
-    stopAllAudio();
-    let audioToPlay: React.RefObject<HTMLAudioElement> | null = null;
-    switch (gameState.status) {
-      case 'playing':
-        audioToPlay = audioRefs.neutral;
-        break;
-      case 'crisis':
-        audioToPlay = audioRefs.crisis;
-        break;
-      case 'win':
-        audioToPlay = audioRefs.win;
-        break;
-      case 'gameover':
-        audioToPlay = audioRefs.lose;
-        break;
-    }
-    if (audioToPlay?.current) {
-        audioToPlay.current.loop = true;
-        audioToPlay.current.play().catch(e => console.error("Audio play failed:", e));
+    if (prevStatus.current !== gameState.status) {
+        stopAllAudio();
+        let audioToPlay: React.RefObject<HTMLAudioElement> | null = null;
+        switch (gameState.status) {
+          case 'playing':
+            audioToPlay = audioRefs.neutral;
+            break;
+          case 'crisis':
+            audioToPlay = audioRefs.crisis;
+            if(prevStatus.current !== 'crisis') audioRefs.crisisAlert.current?.play();
+            break;
+          case 'win':
+            audioToPlay = audioRefs.win;
+            break;
+          case 'gameover':
+            audioToPlay = audioRefs.lose;
+            break;
+        }
+        if (audioToPlay?.current) {
+            audioToPlay.current.loop = true;
+            audioToPlay.current.volume = 0.5;
+            audioToPlay.current.play().catch(e => console.error("Audio play failed:", e));
+        }
+        prevStatus.current = gameState.status;
     }
   }, [gameState.status, stopAllAudio, audioRefs]);
+
+  const prevLogLength = useRef(gameState.log.length);
+  useEffect(() => {
+    if (gameState.log.length > 0 && gameState.log.length > prevLogLength.current) {
+        const lastEntry = gameState.log[0];
+        const changes = lastEntry.statChanges.match(/([+-]\d+)/g) || [];
+        const totalChange = changes.reduce((sum, change) => sum + parseInt(change, 10), 0);
+        
+        if (totalChange > 0) {
+            setTimeout(() => audioRefs.statUp.current?.play(), 500);
+        } else if (totalChange < 0) {
+            setTimeout(() => audioRefs.statDown.current?.play(), 500);
+        }
+    }
+    prevLogLength.current = gameState.log.length;
+  }, [gameState.log, audioRefs]);
 
 
   const checkEndConditions = useCallback((newState: GameState): { status: 'win' | 'gameover', reason: string } | null => {
@@ -83,6 +108,7 @@ export default function App() {
   const handlePolicySubmit = useCallback(async (policy: string) => {
     setIsLoading(true);
     setError(null);
+    audioRefs.stamp.current?.play();
 
     const isCrisisResponse = gameState.status === 'crisis';
 
@@ -91,14 +117,19 @@ export default function App() {
       
       setGameState(prevState => {
         const newStats: Record<Stat, number> = { ...prevState.stats };
-        let statChangesText = [];
+        const statChangesText: string[] = [];
 
         for (const key in result.statChanges) {
           const statKey = key as Stat;
-          const change = result.statChanges[statKey] || 0;
-          newStats[statKey] = Math.max(0, Math.min(100, newStats[statKey] + change));
-          if (change !== 0) {
-            statChangesText.push(`${STAT_DEFINITIONS[statKey].label} ${change > 0 ? '+' : ''}${change}`);
+          if (statKey in newStats) { // Ensure the key is a valid stat
+            // Coerce potential string value from API to a number to prevent type errors
+            const change = Number(result.statChanges[statKey]) || 0;
+            
+            newStats[statKey] = Math.max(0, Math.min(100, newStats[statKey] + change));
+            
+            if (change !== 0) {
+              statChangesText.push(`${STAT_DEFINITIONS[statKey].label} ${change > 0 ? '+' : ''}${change}`);
+            }
           }
         }
         
@@ -149,7 +180,7 @@ export default function App() {
     } finally {
       setIsLoading(false);
     }
-  }, [gameState, checkEndConditions]);
+  }, [gameState, checkEndConditions, audioRefs]);
 
   useEffect(() => {
     if (gameState.status === 'gameover' || gameState.status === 'win') {
@@ -177,7 +208,8 @@ export default function App() {
         className="bg-cover bg-center min-h-screen text-white transition-all duration-1000"
         style={{ backgroundImage: `url(${backgroundUrl})` }}
       >
-        <div className="bg-black bg-opacity-70 min-h-screen p-4 sm:p-6 md:p-8 flex flex-col">
+        <div className="bg-black bg-opacity-70 min-h-screen p-4 sm:p-6 md:p-8 flex flex-col relative">
+          <div className="waving-flag"></div>
           <GameHeader year={gameState.year} />
           
           <div className="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6 mt-4">
@@ -208,11 +240,15 @@ export default function App() {
           <WinScreen legacy={endGameLegacy} onRestart={restartGame} isLoadingLegacy={isLoading} />
         )}
       </main>
-       {/* Audio elements */}
-      <audio ref={audioRefs.neutral} src="https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-audio.mp3" preload="auto"></audio>
-      <audio ref={audioRefs.crisis} src="https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3" preload="auto"></audio>
-      <audio ref={audioRefs.win} src="https://storage.googleapis.com/framemark-test-assets-825442526322/processed-audio/2160p_4k_uhd/d291463e-55c4-4203-b51f-2b630132334e.mp3" preload="auto"></audio>
-      <audio ref={audioRefs.lose} src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3" preload="auto"></audio>
+      {/* Audio elements */}
+      <audio ref={audioRefs.neutral} src="https://cdn.pixabay.com/audio/2023/04/24/audio_343999d31a.mp3" preload="auto"></audio>
+      <audio ref={audioRefs.crisis} src="https://cdn.pixabay.com/audio/2022/11/22/audio_c3149480d2.mp3" preload="auto"></audio>
+      <audio ref={audioRefs.win} src="https://cdn.pixabay.com/audio/2024/02/09/audio_659e928014.mp3" preload="auto"></audio>
+      <audio ref={audioRefs.lose} src="https://cdn.pixabay.com/audio/2022/05/13/audio_787a4a2a72.mp3" preload="auto"></audio>
+      <audio ref={audioRefs.stamp} src="https://cdn.pixabay.com/audio/2022/03/15/audio_18fd70a597.mp3" preload="auto"></audio>
+      <audio ref={audioRefs.statUp} src="https://cdn.pixabay.com/audio/2021/08/04/audio_bb630cc098.mp3" preload="auto"></audio>
+      <audio ref={audioRefs.statDown} src="https://cdn.pixabay.com/audio/2022/03/10/audio_c870954b83.mp3" preload="auto"></audio>
+      <audio ref={audioRefs.crisisAlert} src="https://cdn.pixabay.com/audio/2022/02/07/audio_f50c704f7a.mp3" preload="auto"></audio>
     </>
   );
 }
